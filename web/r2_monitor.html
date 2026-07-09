@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>R2 Monitor</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; background: #f6f7f9; color: #1f2933; }
+    header { padding: 18px 24px; background: #fff; border-bottom: 1px solid #d9dee7; }
+    main { padding: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    section { background: #fff; border: 1px solid #d9dee7; border-radius: 8px; padding: 14px; }
+    h2 { margin: 0 0 10px; font-size: 16px; }
+    pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <header><strong>R2 Monitor</strong> <span id="state">connecting...</span></header>
+  <main>
+    <section><h2>BT 状态</h2><pre id="bt">-</pre></section>
+    <section><h2>定位</h2><pre id="pose">-</pre></section>
+    <section><h2>/aruco_comm/tx_id</h2><pre id="aruco">-</pre></section>
+    <section><h2>传感器</h2><pre id="sensors">-</pre></section>
+    <section><h2>在线状态</h2><pre id="online">-</pre></section>
+    <section><h2>错误</h2><pre id="err">-</pre></section>
+  </main>
+  <script>
+    async function poll() {
+      try {
+        const res = await fetch('http://' + location.hostname + ':8765/data');
+        const d = await res.json();
+        state.textContent = 'online';
+        bt.textContent = JSON.stringify({execution_state: d.execution_state, active_action: d.active_action}, null, 2);
+        pose.textContent = JSON.stringify(d.reloc || {}, null, 2);
+        aruco.textContent = d.aruco ?? '-';
+        sensors.textContent = JSON.stringify({sensors: d.sensors, r0x0121: d.r0x0121}, null, 2);
+        online.textContent = JSON.stringify(d.online || {}, null, 2);
+        err.textContent = d.last_error || '-';
+      } catch (e) {
+        state.textContent = 'offline';
+      }
+    }
+    setInterval(poll, 200);
+    poll();
+  </script>
+</body>
+</html>

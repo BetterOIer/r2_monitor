@@ -14,6 +14,13 @@ from std_msgs.msg import Float32MultiArray, Int32, String
 DATA_TIMEOUT_SEC = 1.0
 
 
+def _round_finite(value, digits):
+    value = float(value)
+    if not math.isfinite(value):
+        return None
+    return round(value, digits)
+
+
 class _Handler(BaseHTTPRequestHandler):
     node = None
 
@@ -32,7 +39,7 @@ class _Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def _json(self, obj):
-        payload = json.dumps(obj, ensure_ascii=False).encode('utf-8')
+        payload = json.dumps(obj, ensure_ascii=False, allow_nan=False).encode('utf-8')
         self.send_response(200)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Content-Length', str(len(payload)))
@@ -75,8 +82,8 @@ class MonitorNode(Node):
         yaw = math.atan2(siny, cosy)
         with self._lock:
             self._latest['reloc'] = {
-                'x': round(msg.pose.position.x * 1000.0, 1),
-                'y': round(msg.pose.position.y * 1000.0, 1),
+                'x': round(msg.pose.position.x, 4),
+                'y': round(msg.pose.position.y, 4),
                 'yaw_deg': round(yaw * 180.0 / math.pi, 2),
             }
             self._mark('reloc')
@@ -84,7 +91,7 @@ class MonitorNode(Node):
     def _array_cb(self, key):
         def cb(msg):
             with self._lock:
-                self._latest[key] = [round(float(v), 3) for v in msg.data]
+                self._latest[key] = [_round_finite(v, 3) for v in msg.data]
                 self._mark(key)
         return cb
 

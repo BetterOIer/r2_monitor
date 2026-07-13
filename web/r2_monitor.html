@@ -23,13 +23,26 @@
     <section><h2>错误</h2><pre id="err">-</pre></section>
   </main>
   <script>
+    const params = new URLSearchParams(location.search);
+    const apiHost = params.get('api_host') || location.hostname || 'localhost';
+    const apiPort = params.get('api_port') || '8765';
+    const apiBase = 'http://' + apiHost + ':' + apiPort;
+
+    function formatPose(reloc) {
+      if (!reloc) return '-';
+      const x = Number.isFinite(reloc.x) ? reloc.x.toFixed(4) + ' m' : '--';
+      const y = Number.isFinite(reloc.y) ? reloc.y.toFixed(4) + ' m' : '--';
+      const yaw = Number.isFinite(reloc.yaw_deg) ? reloc.yaw_deg.toFixed(2) + ' deg' : '--';
+      return 'x: ' + x + '\ny: ' + y + '\nyaw: ' + yaw;
+    }
+
     async function poll() {
       try {
-        const res = await fetch('http://' + location.hostname + ':8765/data');
+        const res = await fetch(apiBase + '/data');
         const d = await res.json();
         state.textContent = 'online';
         bt.textContent = JSON.stringify({execution_state: d.execution_state, active_action: d.active_action}, null, 2);
-        pose.textContent = JSON.stringify(d.reloc || {}, null, 2);
+        pose.textContent = formatPose(d.reloc);
         aruco.textContent = d.aruco ?? '-';
         sensors.textContent = JSON.stringify({sensors: d.sensors, r0x0121: d.r0x0121}, null, 2);
         online.textContent = JSON.stringify(d.online || {}, null, 2);
